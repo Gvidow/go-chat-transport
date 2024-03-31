@@ -1,0 +1,133 @@
+basePath: /api/v1
+definitions:
+  entity.Message:
+    properties:
+      content:
+        example: hello!
+        type: string
+      time:
+        example: 1711902448
+        type: integer
+      username:
+        example: user-2024
+        type: string
+    type: object
+  entity.Segment:
+    properties:
+      data:
+        type: string
+      num:
+        example: 4
+        type: integer
+      size:
+        example: 15
+        type: integer
+      time:
+        example: 1711902448
+        type: integer
+    type: object
+  http.responseError:
+    properties:
+      code:
+        example: auth
+        type: string
+      message:
+        example: the authorization token has not been transferred
+        type: string
+      status:
+        example: error
+        type: string
+    type: object
+  http.responseOk:
+    properties:
+      body: {}
+      status:
+        example: ok
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: pinspire.site:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server chat server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Example API
+  version: "1.0"
+paths:
+  /message/send:
+    post:
+      consumes:
+      - application/json
+      description: splits the message and sends segments to the channel layer
+      parameters:
+      - description: Message
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Message'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.responseOk'
+            - properties:
+                body:
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.responseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.responseError'
+      summary: Send message
+      tags:
+      - message
+  /segment/put:
+    post:
+      consumes:
+      - application/json
+      description: puts a message segment in the queue
+      parameters:
+      - description: Segment
+        in: body
+        name: segment
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Segment'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: integer
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.responseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.responseError'
+      summary: Put a segment in the queue
+      tags:
+      - segment
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"
