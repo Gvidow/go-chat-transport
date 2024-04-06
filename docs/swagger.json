@@ -15,7 +15,7 @@
         },
         "version": "1.0"
     },
-    "host": "pinspire.site:8080",
+    "host": "pinspire.site:5500",
     "basePath": "/api/v1",
     "paths": {
         "/message/send": {

@@ -10,7 +10,7 @@ import (
 	"github.com/gvidow/go-chat-transport/pkg/logger"
 )
 
-const _addr = "0.0.0.0:8080"
+const _addr = "0.0.0.0:5500"
 
 // @title           Swagger Example API
 // @version         1.0
@@ -24,7 +24,7 @@ const _addr = "0.0.0.0:8080"
 // @license.name  Apache 2.0
 // @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host      pinspire.site:8080
+// @host      pinspire.site:5500
 // @BasePath  /api/v1
 
 // @securityDefinitions.basic  BasicAuth
