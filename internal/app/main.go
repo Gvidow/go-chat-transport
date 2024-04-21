@@ -34,7 +34,7 @@ const _addr = "0.0.0.0:5500"
 func Main(ctx context.Context, log *logger.Logger) error {
 	serv := server.NewServer()
 
-	if err := api.RegistryHandler(serv, http.NewHandler()); err != nil {
+	if err := api.RegistryHandler(serv, http.NewHandler(log, nil, nil)); err != nil {
 		log.Error(err.Error())
 		return err
 	}

@@ -1,6 +1,8 @@
 package http
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,6 +21,23 @@ import (
 // @Failure      500  {object}  responseError
 // @Router       /message/send [post]
 func (h *Handler) SendMessage(c *gin.Context) {
-	_ = entity.Message{}
-	c.JSON(http.StatusInternalServerError, responseError{Status: "error", Code: "unimplemented", Message: "method send message is not implemented"})
+	mes := &entity.Message{}
+	err := json.NewDecoder(c.Request.Body).Decode(mes)
+	defer c.Request.Body.Close()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, responseError{Status: "error", Code: "parse_body", Message: "the request body could not be parsed message"})
+		return
+	}
+
+	go func() {
+		ctx, cancel := context.WithTimeout(h.baseCtx, _timeoutSendMessage)
+		defer cancel()
+
+		err := h.messageUsecase.Send(ctx, mes)
+		if err != nil {
+			h.log.Error(err.Error())
+		}
+	}()
+
+	c.JSON(http.StatusOK, responseOk{Status: "ok"})
 }
