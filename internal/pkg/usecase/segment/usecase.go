@@ -21,5 +21,5 @@ func NewSegmentUsecase(repo segment.Repository) SegmentStacker {
 }
 
 func (u usecaseSegment) SaveToQueue(ctx context.Context, segment *entity.Segment) error {
-	return errors.WrapError("save to queue", u.repo.Put(ctx, segment))
+	return errors.WrapError(u.repo.Put(ctx, segment), "save to queue")
 }
