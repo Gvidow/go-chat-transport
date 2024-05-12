@@ -2,14 +2,21 @@ package app
 
 import (
 	"context"
+	"sync"
+	"time"
 
 	"github.com/IBM/sarama"
 
 	_ "github.com/gvidow/go-chat-transport/docs"
 	"github.com/gvidow/go-chat-transport/internal/api"
 	http "github.com/gvidow/go-chat-transport/internal/pkg/delivery/http/v1"
+	consumer "github.com/gvidow/go-chat-transport/internal/pkg/delivery/kafka"
 	manager "github.com/gvidow/go-chat-transport/internal/pkg/kafka"
-	"github.com/gvidow/go-chat-transport/internal/pkg/repository/segment"
+	msgRepo "github.com/gvidow/go-chat-transport/internal/pkg/repository/message"
+	repository "github.com/gvidow/go-chat-transport/internal/pkg/repository/segment"
+	"github.com/gvidow/go-chat-transport/internal/pkg/repository/user"
+	"github.com/gvidow/go-chat-transport/internal/pkg/usecase/message"
+	"github.com/gvidow/go-chat-transport/internal/pkg/usecase/segment"
 	"github.com/gvidow/go-chat-transport/internal/server"
 	"github.com/gvidow/go-chat-transport/pkg/errors"
 	"github.com/gvidow/go-chat-transport/pkg/logger"
@@ -17,6 +24,13 @@ import (
 
 const _addr = "0.0.0.0:5500"
 const _appTopic = "chat"
+
+const _lruSize = 1 << 10
+
+var (
+	_timeoutSenderMessage        = 2 * time.Second
+	_sizeSegment          uint32 = 110
+)
 
 var _kafkaAddrs = []string{"localhost:9092"}
 
@@ -48,17 +62,54 @@ func Main(ctx context.Context, log *logger.Logger) error {
 	if err != nil {
 		return errors.WrapError(err, "create kafka manager")
 	}
+	defer kafkaManager.Close()
 
-	segmentStackerRepo, err := segment.NewSegmentStacker(kafkaManager)
+	userRepo, err := user.NewUsernameStory(_lruSize)
+	if err != nil {
+		return errors.WrapError(err, "create user repository")
+	}
+
+	segmentStackerRepo, err := repository.NewSegmentStacker(kafkaManager)
 	if err != nil {
 		return errors.WrapError(err, "new repository segmant stacker")
 	}
-	_ = segmentStackerRepo
 
-	if err := api.RegistryHandler(serv, http.NewHandler(log, nil, nil)); err != nil {
+	segRepo := repository.NewRepository(segmentStackerRepo, repository.NewSegmentTransfer(_apiEncodingServer))
+
+	su := segment.NewSegmentUsecase(segRepo, userRepo, msgRepo.NewSenderMsg(_apiWSServer))
+
+	if err := api.RegistryHandler(serv, http.NewHandler(
+		log,
+		su,
+		message.NewUsecaseMessage(segRepo, userRepo, message.WithPartitionBySize(_sizeSegment)),
+	)); err != nil {
 		log.Error(err.Error())
 		return err
 	}
+
+	consumerHub, err := consumer.NewConsumerHub(ctx, &consumer.Config{
+		Manager:              kafkaManager,
+		Log:                  log,
+		TimeoutSenderMessage: _timeoutSenderMessage,
+	}, su)
+	if err != nil {
+		return errors.WrapError(err, "new consumer hub")
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		wg.Done()
+		log.Info("start consumer hub")
+		if err := consumerHub.Serve(); err != nil {
+			log.Error(err.Error())
+		}
+	}()
+
+	defer func() {
+		consumerHub.Shutdown()
+		wg.Wait()
+	}()
 
 	log.Sugar().Infof("run server on %s", _addr)
 	if err := serv.Run(_addr); err != nil {

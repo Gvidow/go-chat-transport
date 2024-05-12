@@ -7,7 +7,7 @@ import (
 )
 
 type Transfer interface {
-	Transfer(context.Context, *entity.Segment) error
+	DoTransfer(context.Context, *entity.Segment) error
 }
 
 type Stacker interface {
@@ -17,4 +17,13 @@ type Stacker interface {
 type Repository interface {
 	Stacker
 	Transfer
+}
+
+type repo struct {
+	Stacker
+	Transfer
+}
+
+func NewRepository(s Stacker, t Transfer) Repository {
+	return repo{s, t}
 }

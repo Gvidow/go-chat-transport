@@ -5,6 +5,7 @@ import (
 
 	"github.com/gvidow/go-chat-transport/internal/pkg/entity"
 	"github.com/gvidow/go-chat-transport/internal/pkg/repository/segment"
+	"github.com/gvidow/go-chat-transport/internal/pkg/repository/user"
 	"github.com/gvidow/go-chat-transport/pkg/errors"
 )
 
@@ -15,11 +16,13 @@ type Sender interface {
 type usecaseMessage struct {
 	repoSegment  segment.Repository
 	segmentation func(*entity.Message) []entity.Segment
+	userRepo     user.Repository
 }
 
-func NewUsecaseMessage(repo segment.Repository, opts ...option) Sender {
+func NewUsecaseMessage(repo segment.Repository, userRepo user.Repository, opts ...option) Sender {
 	usecase := &usecaseMessage{
 		repoSegment: repo,
+		userRepo:    userRepo,
 	}
 
 	for _, opt := range opts {
@@ -31,8 +34,14 @@ func NewUsecaseMessage(repo segment.Repository, opts ...option) Sender {
 
 func (u *usecaseMessage) Send(ctx context.Context, mes *entity.Message) error {
 	segments := u.SplitIntoSegments(mes)
+
+	err := u.userRepo.SaveUsername(ctx, mes.Time, mes.Username)
+	if err != nil {
+		return errors.WrapFail(err, "save username")
+	}
+
 	for ind := range segments {
-		err := u.repoSegment.Transfer(ctx, &segments[ind])
+		err = u.repoSegment.DoTransfer(ctx, &segments[ind])
 		if err != nil {
 			return errors.WrapFail(err, "send message by segments")
 		}

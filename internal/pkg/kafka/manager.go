@@ -41,7 +41,7 @@ func (m *manager) Partitions() ([]int32, error) {
 }
 
 func (m *manager) NewSyncProducer() (sarama.SyncProducer, error) {
-	p, err := sarama.NewSyncProducer(m.addrs, m.config)
+	p, err := sarama.NewSyncProducerFromClient(m.client)
 	if err != nil {
 		return nil, errors.WrapError(err, "manager: new sync producer")
 	}
@@ -49,9 +49,13 @@ func (m *manager) NewSyncProducer() (sarama.SyncProducer, error) {
 }
 
 func (m *manager) NewConsumer() (sarama.Consumer, error) {
-	c, err := sarama.NewConsumer(m.addrs, m.config)
+	c, err := sarama.NewConsumerFromClient(m.client)
 	if err != nil {
 		return nil, errors.WrapError(err, "manager: new consumer")
 	}
 	return c, nil
+}
+
+func (m *manager) Close() error {
+	return m.client.Close()
 }

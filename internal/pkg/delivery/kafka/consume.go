@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/IBM/sarama"
@@ -10,16 +11,17 @@ import (
 
 func (c *consumerHub) Consume(pc sarama.PartitionConsumer) {
 	var err error
+	log := c.cfg.Log.Sugar()
 
 	for mes := range pc.Messages() {
-		err = c.serveMessage(mes)
+		err = c.serveMessage(c.ctx, mes)
 		if err != nil {
-			c.log.Sugar().Errorf("serve message with key %s: %v", mes.Key, err)
+			log.Errorf("serve message with key %s: %v", mes.Key, err)
 		}
 	}
 }
 
-func (c *consumerHub) serveMessage(m *sarama.ConsumerMessage) error {
+func (c *consumerHub) serveMessage(ctx context.Context, m *sarama.ConsumerMessage) error {
 	data := m.Value
 	segment := &entity.Segment{}
 
@@ -28,7 +30,5 @@ func (c *consumerHub) serveMessage(m *sarama.ConsumerMessage) error {
 		return errors.WrapFail(err, "unmarshal consumer message")
 	}
 
-	_ = segment
-
-	return nil
+	return errors.WrapFail(c.usecase.SegmentProcessing(ctx, segment), "serve segment")
 }

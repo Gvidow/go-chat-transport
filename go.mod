@@ -5,6 +5,7 @@ go 1.21.6
 require (
 	github.com/IBM/sarama v1.43.1
 	github.com/gin-gonic/gin v1.9.1
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.3
