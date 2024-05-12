@@ -3,6 +3,7 @@ package segment
 import (
 	"context"
 	errorsStd "errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -35,11 +36,13 @@ var _ interface {
 	SegmentStacker
 } = (*usecaseSegment)(nil)
 
-func NewSegmentUsecase(repo segment.Repository, userRepo user.Repository, msgRepo message.Repository) *usecaseSegment {
+func NewSegmentUsecase(log *log.Logger, repo segment.Repository, userRepo user.Repository, msgRepo message.Repository) *usecaseSegment {
 	return &usecaseSegment{
+		log:      log,
 		repo:     repo,
 		userRepo: userRepo,
 		msgRepo:  msgRepo,
+		mu:       sync.Mutex{},
 	}
 }
 
@@ -107,8 +110,10 @@ func (u *usecaseSegment) processBatchSegment(ctx context.Context, batch map[uint
 	for _, messageBuilder := range batch {
 		msg := messageBuilder.Build()
 		if err = u.msgRepo.Send(ctx, msg); err != nil {
-			return errors.WrapError(err, "send message with error flag")
+			return errors.WrapError(err, fmt.Sprintf("send message with error flag: %v", msg))
 		}
+
+		u.log.Sugar().Infof("success send message with flag: %v", msg)
 	}
 	return nil
 }

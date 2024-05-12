@@ -76,7 +76,7 @@ func Main(ctx context.Context, log *logger.Logger) error {
 
 	segRepo := repository.NewRepository(segmentStackerRepo, repository.NewSegmentTransfer(_apiEncodingServer))
 
-	su := segment.NewSegmentUsecase(segRepo, userRepo, msgRepo.NewSenderMsg(_apiWSServer))
+	su := segment.NewSegmentUsecase(log, segRepo, userRepo, msgRepo.NewSenderMsg(_apiWSServer))
 
 	if err := api.RegistryHandler(serv, http.NewHandler(
 		log,
