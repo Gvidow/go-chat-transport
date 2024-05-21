@@ -36,6 +36,8 @@ func (s *senderMsgWithFlag) Send(ctx context.Context, msg *entity.MessageWithErr
 		return errors.WrapFail(err, "make request")
 	}
 
+	req.Header.Add("Content-Type", "application/json")
+
 	res, err := s.Client.Do(req)
 	if err != nil {
 		return errors.WrapError(err, "do request")

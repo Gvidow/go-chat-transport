@@ -32,6 +32,8 @@ func (s *segmentTransfer) DoTransfer(ctx context.Context, segment *entity.Segmen
 		return errors.WrapFail(err, "make request")
 	}
 
+	req.Header.Add("Content-Type", "application/json")
+
 	res, err := s.Client.Do(req)
 	if err != nil {
 		return errors.WrapError(err, "do request")
